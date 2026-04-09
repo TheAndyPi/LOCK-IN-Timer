@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { UserProfile, InsultContent } from "../types";
-import { SYSTEM_INSTRUCTION_INSULT, SYSTEM_INSTRUCTION_VERIFY, SYSTEM_INSTRUCTION_PUNISHMENT } from "../constants";
+import { SYSTEM_INSTRUCTION_INSULT, SYSTEM_INSTRUCTION_ENCOURAGEMENT, SYSTEM_INSTRUCTION_VERIFY, SYSTEM_INSTRUCTION_VERIFY_HAPPY, SYSTEM_INSTRUCTION_PUNISHMENT, SYSTEM_INSTRUCTION_PUNISHMENT_HAPPY } from "../constants";
 
 // Helper to get AI instance safely
 const getAI = () => {
@@ -9,7 +9,7 @@ const getAI = () => {
   return new GoogleGenAI({ apiKey });
 };
 
-export const generateInsult = async (profile: UserProfile, currentTask: string): Promise<InsultContent> => {
+export const generateInsult = async (profile: UserProfile, currentTask: string, modeStyle: 'HAPPY' | 'EVIL'): Promise<InsultContent> => {
   try {
     const ai = getAI();
     
@@ -25,19 +25,19 @@ export const generateInsult = async (profile: UserProfile, currentTask: string):
     
     Current Task they should be doing: ${currentTask}
     
-    Generate a brutal, personalized insult/threat.
+    Generate a ${modeStyle === 'HAPPY' ? 'positive, uplifting affirmation' : 'brutal, personalized insult/threat'}.
     `;
 
     const textResponse = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
-        systemInstruction: SYSTEM_INSTRUCTION_INSULT,
+        systemInstruction: modeStyle === 'HAPPY' ? SYSTEM_INSTRUCTION_ENCOURAGEMENT : SYSTEM_INSTRUCTION_INSULT,
         temperature: 1.2, 
       }
     });
 
-    const insultText = textResponse.text || "You are wasting space. Get to work.";
+    const insultText = textResponse.text || (modeStyle === 'HAPPY' ? "You are doing great. Keep it up." : "You are wasting space. Get to work.");
 
     return {
       text: insultText,
@@ -49,7 +49,7 @@ export const generateInsult = async (profile: UserProfile, currentTask: string):
   }
 };
 
-export const verifyTaskCompletion = async (task: string, proofDescription: string, proofImageBase64?: string): Promise<{success: boolean, message: string}> => {
+export const verifyTaskCompletion = async (task: string, proofDescription: string, modeStyle: 'HAPPY' | 'EVIL', proofImageBase64?: string): Promise<{success: boolean, message: string}> => {
     const ai = getAI();
     
     const parts: any[] = [{ text: `Task: ${task}. User Description: ${proofDescription}` }];
@@ -62,7 +62,7 @@ export const verifyTaskCompletion = async (task: string, proofDescription: strin
         model: 'gemini-2.5-flash',
         contents: { parts },
         config: {
-            systemInstruction: SYSTEM_INSTRUCTION_VERIFY,
+            systemInstruction: modeStyle === 'HAPPY' ? SYSTEM_INSTRUCTION_VERIFY_HAPPY : SYSTEM_INSTRUCTION_VERIFY,
             responseMimeType: 'application/json',
             responseSchema: {
                 type: Type.OBJECT,
@@ -79,9 +79,9 @@ export const verifyTaskCompletion = async (task: string, proofDescription: strin
     return json;
 };
 
-export const generatePunishment = async (style: 'PUBLIC' | 'PRIVATE' | 'SOCIAL' | 'CUSTOM', customPrompt?: string): Promise<string> => {
+export const generatePunishment = async (style: 'PUBLIC' | 'PRIVATE' | 'SOCIAL' | 'CUSTOM', modeStyle: 'HAPPY' | 'EVIL', customPrompt?: string): Promise<string> => {
     const ai = getAI();
-    let prompt = `Generate a punishment for the setting: ${style}. Keep it verifyingly static.`;
+    let prompt = `Generate a ${modeStyle === 'HAPPY' ? 'positive activity' : 'punishment'} for the setting: ${style}. Keep it verifyingly static.`;
     
     if (style === 'CUSTOM' && customPrompt) {
         prompt += `\n\nUSER CUSTOM RULES: ${customPrompt}`;
@@ -91,10 +91,10 @@ export const generatePunishment = async (style: 'PUBLIC' | 'PRIVATE' | 'SOCIAL' 
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
-            systemInstruction: SYSTEM_INSTRUCTION_PUNISHMENT,
+            systemInstruction: modeStyle === 'HAPPY' ? SYSTEM_INSTRUCTION_PUNISHMENT_HAPPY : SYSTEM_INSTRUCTION_PUNISHMENT,
         }
     });
-    return response.text || "Salute the camera.";
+    return response.text || (modeStyle === 'HAPPY' ? "Smile at the camera." : "Salute the camera.");
 };
 
 export const verifyPunishment = async (proofImageBase64: string): Promise<boolean> => {

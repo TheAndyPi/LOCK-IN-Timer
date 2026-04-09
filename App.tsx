@@ -5,7 +5,7 @@ import {
     Plus, Minus, RefreshCw, X, HelpCircle, Smartphone, User, Palette, Monitor, BrainCircuit, Trash2, Library, Home, MessageCircle, Edit3, Lock, ShieldAlert, Timer, ArrowLeft
 } from 'lucide-react';
 import { AppMode, UserProfile, SessionConfig, SessionData, InsultContent, VisionStatus, AttentionSample, ThemeConfig, SessionState } from './types';
-import { DEFAULT_CONFIG, ATTENTION_CHECK_INTERVAL_MS, INSULT_REFRESH_INTERVAL_MS, ALLOWED_DISTRACTION_TIME_MS, THEME_PRESETS, STATIC_INSULTS } from './constants';
+import { DEFAULT_CONFIG, ATTENTION_CHECK_INTERVAL_MS, INSULT_REFRESH_INTERVAL_MS, ALLOWED_DISTRACTION_TIME_MS, THEME_PRESETS, STATIC_INSULTS, STATIC_ENCOURAGEMENTS } from './constants';
 import * as GeminiService from './services/gemini';
 import * as VisionService from './services/vision';
 import { playAlarm, stopAlarm, playSuccessChime, playBreakEndChime } from './utils/audio';
@@ -13,7 +13,25 @@ import { Stats } from './components/Stats';
 
 // --- Sub-Components ---
 
-const VisualWarning: React.FC = () => {
+const VisualWarning: React.FC<{ modeStyle: 'HAPPY' | 'EVIL' }> = ({ modeStyle }) => {
+    if (modeStyle === 'HAPPY') {
+        return (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none overflow-hidden">
+                <div className="absolute inset-0 bg-blue-500 animate-pulse opacity-20 mix-blend-overlay"></div>
+                <div className="relative z-10 flex flex-col items-center justify-center text-center animate-bounce">
+                    <h1 className="text-[10vw] font-black text-blue-400 leading-none drop-shadow-[0_0_15px_rgba(0,0,0,1)] stroke-black">
+                        GENTLE
+                    </h1>
+                    <h1 className="text-[10vw] font-black text-white leading-none drop-shadow-[0_0_15px_rgba(0,0,255,1)]">
+                        REMINDER
+                    </h1>
+                    <p className="text-2xl font-bold bg-black text-blue-400 px-4 py-2 mt-4 uppercase tracking-widest border-2 border-blue-400">
+                        Please refocus
+                    </p>
+                </div>
+            </div>
+        );
+    }
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none overflow-hidden">
             {/* Strobe Background */}
@@ -160,7 +178,9 @@ const SettingsModal: React.FC<{
 
                             {/* Punishment Style */}
                             <div className="pt-2">
-                                <label className="text-xs uppercase text-main/50 block mb-2">Punishment Context</label>
+                                <label className="text-xs uppercase text-main/50 block mb-2">
+                                    {localConfig.modeStyle === 'HAPPY' ? 'Activity Context' : 'Punishment Context'}
+                                </label>
                                 <div className="grid grid-cols-2 gap-2">
                                     <button 
                                         onClick={() => setLocalConfig({...localConfig, punishmentStyle: 'PUBLIC'})}
@@ -227,6 +247,20 @@ const SettingsModal: React.FC<{
                             <div className="pt-4 mt-4 border-t border-gray-800 space-y-3">
                                 <label className="flex items-center justify-between cursor-pointer group">
                                     <span className="flex items-center gap-2 text-sm font-bold uppercase text-main/80 group-hover:text-main">
+                                        <Palette size={16} /> Mode Style (Happy/Evil)
+                                    </span>
+                                    <select 
+                                        value={localConfig.modeStyle}
+                                        onChange={e => setLocalConfig({...localConfig, modeStyle: e.target.value as 'HAPPY' | 'EVIL'})}
+                                        className="bg-void-black border border-gray-600 rounded p-1 text-xs text-main outline-none focus:border-danger-red"
+                                    >
+                                        <option value="HAPPY">Happy (Default)</option>
+                                        <option value="EVIL">Evil (Hurtful)</option>
+                                    </select>
+                                </label>
+
+                                <label className="flex items-center justify-between cursor-pointer group">
+                                    <span className="flex items-center gap-2 text-sm font-bold uppercase text-main/80 group-hover:text-main">
                                         <BrainCircuit size={16} /> Enable Gemini AI Features
                                     </span>
                                     <input 
@@ -239,7 +273,7 @@ const SettingsModal: React.FC<{
 
                                 <label className="flex items-center justify-between cursor-pointer group">
                                     <span className="flex items-center gap-2 text-sm font-bold uppercase text-main/80 group-hover:text-main">
-                                        <MessageCircle size={16} /> Enable Insults/Messages
+                                        <MessageCircle size={16} /> Enable {localConfig.modeStyle === 'HAPPY' ? 'Encouragements' : 'Insults'}
                                     </span>
                                     <input 
                                         type="checkbox" 
@@ -251,7 +285,7 @@ const SettingsModal: React.FC<{
 
                                 <label className="flex items-center justify-between cursor-pointer group">
                                     <span className="flex items-center gap-2 text-sm font-bold uppercase text-main/80 group-hover:text-main">
-                                        <ShieldAlert size={16} /> Tab Closure Punishment
+                                        <ShieldAlert size={16} /> Tab Closure {localConfig.modeStyle === 'HAPPY' ? 'Activity' : 'Punishment'}
                                     </span>
                                     <input 
                                         type="checkbox" 
@@ -433,7 +467,7 @@ const Onboarding: React.FC<{ onComplete: (profile: UserProfile) => void }> = ({ 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-void-black text-main max-w-lg mx-auto overflow-y-auto">
       <h1 className="text-4xl font-black mb-2 text-danger-red uppercase tracking-widest text-center mt-8">Identity Check</h1>
-      <p className="mb-8 text-main/50 text-center">Tell me who you are so I can hurt you accurately.</p>
+      <p className="mb-8 text-main/50 text-center">Tell me about yourself.</p>
       
       <div className="w-full space-y-4 mb-8">
         <input 
@@ -570,13 +604,14 @@ const App: React.FC = () => {
     
     // Fallback if Gemini is disabled
     if (!config.enableGemini) {
-        const text = STATIC_INSULTS[Math.floor(Math.random() * STATIC_INSULTS.length)];
+        const arr = config.modeStyle === 'HAPPY' ? STATIC_ENCOURAGEMENTS : STATIC_INSULTS;
+        const text = arr[Math.floor(Math.random() * arr.length)];
         setInsult({ text });
         return;
     }
 
     setLoadingMessage(true);
-    const content = await GeminiService.generateInsult(profile, currentTask);
+    const content = await GeminiService.generateInsult(profile, currentTask, config.modeStyle);
     setInsult(content);
     setLoadingMessage(false);
   }, [profile, config, currentTask]);
@@ -621,9 +656,9 @@ const App: React.FC = () => {
 
                    // Trigger AI Punishment Generation immediately
                    if (parsed.config.enableGemini) {
-                       GeminiService.generatePunishment(parsed.config.punishmentStyle, parsed.config.customPunishmentPrompt)
+                       GeminiService.generatePunishment(parsed.config.punishmentStyle, parsed.config.modeStyle, parsed.config.customPunishmentPrompt)
                         .then(text => setPunishment(text))
-                        .catch(() => setPunishment("Salute the camera for 30 seconds."));
+                        .catch(() => setPunishment(parsed.config.modeStyle === 'HAPPY' ? "Smile at the camera for 30 seconds." : "Salute the camera for 30 seconds."));
                    }
                } else {
                    setMode(AppMode.IDLE);
@@ -921,14 +956,14 @@ const App: React.FC = () => {
 
       setVerificationLoading(true);
       try {
-          const result = await GeminiService.verifyTaskCompletion(currentTask, verifyText, imageData);
+          const result = await GeminiService.verifyTaskCompletion(currentTask, verifyText, config.modeStyle, imageData);
           if (result.success) {
               setMode(AppMode.BREAK_LONG);
               setTimeLeft(config.longBreakDuration * 60);
               setIsRunning(true);
           } else {
               // Fail
-              const punishmentTask = await GeminiService.generatePunishment(config.punishmentStyle, config.customPunishmentPrompt);
+              const punishmentTask = await GeminiService.generatePunishment(config.punishmentStyle, config.modeStyle, config.customPunishmentPrompt);
               setPunishment(punishmentTask);
               setMode(AppMode.PUNISHMENT);
           }
@@ -945,10 +980,10 @@ const App: React.FC = () => {
   const handleRegeneratePunishment = async () => {
     setVerificationLoading(true);
     try {
-        const newPunishment = await GeminiService.generatePunishment(config.punishmentStyle, config.customPunishmentPrompt);
+        const newPunishment = await GeminiService.generatePunishment(config.punishmentStyle, config.modeStyle, config.customPunishmentPrompt);
         setPunishment(newPunishment);
     } catch(e) {
-        alert("Failed to generate punishment. Just do the previous one.");
+        alert("Failed to generate. Just do the previous one.");
     }
     setVerificationLoading(false);
   };
@@ -1004,9 +1039,9 @@ const App: React.FC = () => {
          setMode(AppMode.IDLE);
          setSessionCount(0);
          setSnapshotPreview(null);
-         alert("Punishment verified. You may start over. Do not fail again.");
+         alert(config.modeStyle === 'HAPPY' ? "Activity verified. You may start over. You've got this!" : "Punishment verified. You may start over. Do not fail again.");
      } else {
-         alert("That didn't look like punishment. Do it again.");
+         alert(config.modeStyle === 'HAPPY' ? "That didn't look quite right. Please try again." : "That didn't look like punishment. Do it again.");
          setSnapshotPreview(null); 
      }
   };
@@ -1046,7 +1081,7 @@ const App: React.FC = () => {
     <div className="relative min-h-screen w-full flex flex-col bg-void-black text-main transition-colors duration-200 overflow-hidden font-mono">
         
         {/* CRITICAL WARNING OVERLAY */}
-        {integrity <= 0 && mode === AppMode.FOCUS && <VisualWarning />}
+        {integrity <= 0 && mode === AppMode.FOCUS && <VisualWarning modeStyle={config.modeStyle} />}
 
         {/* WEBCAM MONITORING UI */}
         <div className={`fixed bottom-6 right-6 z-50 transition-all duration-500 ease-in-out ${mode === AppMode.FOCUS || mode === AppMode.PUNISHMENT ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
@@ -1231,7 +1266,9 @@ const App: React.FC = () => {
                                         "{insult.text}"
                                     </p>
                                 ) : (
-                                    <p className="text-main/50 animate-pulse text-xl">Constructing Psychological Attack...</p>
+                                    <p className="text-main/50 animate-pulse text-xl">
+                                        {config.modeStyle === 'HAPPY' ? 'Constructing Positive Affirmation...' : 'Constructing Psychological Attack...'}
+                                    </p>
                                 )}
                                 <button 
                                     onClick={generateNewInsult} 
@@ -1336,7 +1373,9 @@ const App: React.FC = () => {
                         <ArrowLeft size={14} /> Resume Session (Skip)
                      </button>
 
-                     <h2 className="text-3xl font-black text-danger-red mb-6 uppercase tracking-wider drop-shadow-md mt-6">FAILURE DETECTED</h2>
+                     <h2 className="text-3xl font-black text-danger-red mb-6 uppercase tracking-wider drop-shadow-md mt-6">
+                        {config.modeStyle === 'HAPPY' ? "LET'S TRY AGAIN" : "FAILURE DETECTED"}
+                     </h2>
                      <p className="text-white mb-8 text-xl font-mono bg-black/50 p-4 rounded border border-gray-700">{punishment}</p>
                      
                      <div className="bg-black/80 p-4 rounded mb-6 border border-gray-800">
@@ -1356,7 +1395,9 @@ const App: React.FC = () => {
                              </div>
                          ) : (
                              <>
-                                <p className="text-sm text-gray-400 mb-4">Perform the punishment in front of the camera.</p>
+                                <p className="text-sm text-gray-400 mb-4">
+                                    {config.modeStyle === 'HAPPY' ? 'Perform the activity in front of the camera.' : 'Perform the punishment in front of the camera.'}
+                                </p>
                                 <button 
                                      onClick={() => {
                                          const img = captureWebcam();

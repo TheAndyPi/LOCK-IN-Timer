@@ -31,6 +31,7 @@ export interface SessionConfig {
   enableTabPunishment: boolean;
   maxPauses: number;
   pauseDuration: number; // minutes
+  modeStyle: 'HAPPY' | 'EVIL';
 }
 
 export interface SessionState {
