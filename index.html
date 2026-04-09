@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LOCK IN</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'danger-red': 'var(--color-accent)',
+              'void-black': 'var(--color-bg)',
+              'dim-gray': 'var(--color-dim)',
+              'text-main': 'var(--color-text)',
+              'on-accent': 'var(--color-accent-text)',
+            },
+            fontFamily: {
+              mono: ['var(--font-main)', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+            },
+            animation: {
+              'pulse-fast': 'pulse 0.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'strobe': 'strobe 0.15s steps(2, start) infinite',
+              'flash-panic': 'flash-panic 0.5s ease-in-out infinite',
+            },
+            keyframes: {
+              strobe: {
+                '0%': { backgroundColor: 'var(--color-accent)' },
+                '100%': { backgroundColor: '#ffffff' },
+              },
+              'flash-panic': {
+                '0%, 100%': { backgroundColor: 'var(--color-accent)', opacity: '0.8' },
+                '50%': { backgroundColor: 'var(--color-bg)', opacity: '1' },
+              }
+            }
+          },
+        },
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "@google/genai": "https://esm.sh/@google/genai@^1.33.0",
+    "recharts": "https://esm.sh/recharts@^3.5.1",
+    "lucide-react": "https://esm.sh/lucide-react@^0.561.0",
+    "@tensorflow/tfjs": "https://esm.sh/@tensorflow/tfjs@4.17.0",
+    "@tensorflow-models/blazeface": "https://esm.sh/@tensorflow-models/blazeface@0.0.7",
+    "@tensorflow-models/coco-ssd": "https://esm.sh/@tensorflow-models/coco-ssd@2.2.3"
+  }
+}
+</script>
+<style>
+  :root {
+    --color-accent: #ff0000;
+    --color-bg: #0a0a0a;
+    --color-dim: #1a1a1a;
+    --color-text: #ffffff;
+    --color-accent-text: #ffffff;
+    --font-main: 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', "Liberation Mono", "Courier New", 'monospace';
+  }
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+  }
+</style>
+</head>
+  <body class="bg-void-black text-main font-mono h-screen w-screen overflow-hidden selection:bg-danger-red selection:text-white">
+    <div id="root"></div>
+  </body>
+</html>

@@ -1,0 +1,7 @@
+{
+  "name": "LOCK IN - Aggressive Study Timer",
+  "description": "An aggressive, drill-sergeant style Pomodoro timer that uses psychological pressure and AI monitoring to force students to study.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
